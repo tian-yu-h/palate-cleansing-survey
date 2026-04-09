@@ -937,14 +937,12 @@
       });
 
       // Demographics other inputs
+      // Demographics other inputs
       document.querySelectorAll("[data-input='demo-other']").forEach(inp => {
         inp.addEventListener("input", e => {
           const qid = e.target.dataset.qid;
           state.otherTexts[qid] = e.target.value;
           state.error = "";
-          if (e.target.value) {
-            state.answers[qid] = "Other";
-          }
         });
       });
 
@@ -955,9 +953,6 @@
           const q = questions[state.page - 1];
           state.otherTexts[q.id] = e.target.value;
           state.error = "";
-          if (q.type === "single" && e.target.value) {
-            state.answers[q.id] = "Other";
-          }
         });
       }
 
