@@ -519,7 +519,7 @@
     // ══════════════════════════════════════════════════════════════════
     // CONFIG — Replace with your deployed Google Apps Script URL
     // ══════════════════════════════════════════════════════════════════
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhzpYUdECfH2sPkpx0XC9sTBim-EDl8_uPgeNfOM7uZn-PxI2z0nXL9bi_6tistrAOZQ/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzdp2zDH8hQYDdGeaymjgceno4OUjANO-P4irP1sbt7XZr-hyN5YQ2Qfu1N9dSJUGiuzg/exec";
 
     // ══════════════════════════════════════════════════════════════════
     // IMAGE DATA (unchanged)
@@ -564,6 +564,7 @@
       },
       q1: {
         "Trained panel": "q1_trained_panel",
+        "Discriminative testing": "q1_discriminative_testing",
         "Consumer testing": "q1_consumer_testing",
         "Product development / R&D": "q1_product_dev",
         "Academic research": "q1_academic_research",
@@ -621,7 +622,7 @@
     const questions = [
       {
         id: "q1", number: 1, text: "What type of sensory work do you primarily conduct?", type: "multi",
-        options: ["Trained panel", "Consumer testing", "Product development / R&D", "Academic research", "Quality / manufacturing"], hasOther: true
+        options: ["Trained panel", "Discriminative testing", "Consumer testing", "Product development / R&D", "Academic research", "Quality / manufacturing"], hasOther: true
       },
       {
         id: "q2", number: 2, text: "What product categories do you most often evaluate?", type: "multi",
