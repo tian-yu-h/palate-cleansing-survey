@@ -519,7 +519,7 @@
     // ══════════════════════════════════════════════════════════════════
     // CONFIG — Replace with your deployed Google Apps Script URL
     // ══════════════════════════════════════════════════════════════════
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxFbsDIXWoF3DTg3Y7onktzA_Rx3EWtykyStHS-lZYiY5f7m7SAove9Nt1ngB9uqEBnyA/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhzpYUdECfH2sPkpx0XC9sTBim-EDl8_uPgeNfOM7uZn-PxI2z0nXL9bi_6tistrAOZQ/exec";
 
     // ══════════════════════════════════════════════════════════════════
     // IMAGE DATA (unchanged)
@@ -536,7 +536,7 @@
         options: ["North America", "Latin America (LATAM)", "Europe", "Asia Pacific / Middle East / Africa (APMEA)"], hasOther: true
       },
       {
-        id: "q13", label: "What is your primary industry or field of work/study?", type: "single",
+        id: "q13", label: "What is your primary industry or field of work/study?", type: "multi",
         options: ["Food", "Beverage", "Over-the-Counter (OTC) / Health products", "Oral care", "Personal care / Cosmetics", "Ingredients / Flavor / Fragrance supplier", "Market / Consumer research supplier", "Hospitality (restaurant, hotel, etc.)", "Retail", "Academia"], hasOther: true
       },
       {
@@ -550,6 +550,18 @@
     // Binary key maps for multi-select questions → column names
     // ══════════════════════════════════════════════════════════════════
     const multiSelectKeyMaps = {
+      q13: {
+        "Food": "q13_food",
+        "Beverage": "q13_beverage",
+        "Over-the-Counter (OTC) / Health products": "q13_otc_health",
+        "Oral care": "q13_oral_care",
+        "Personal care / Cosmetics": "q13_personal_care",
+        "Ingredients / Flavor / Fragrance supplier": "q13_ingredients_supplier",
+        "Market / Consumer research supplier": "q13_market_research_supplier",
+        "Hospitality (restaurant, hotel, etc.)": "q13_hospitality",
+        "Retail": "q13_retail",
+        "Academia": "q13_academia"
+      },
       q1: {
         "Trained panel": "q1_trained_panel",
         "Consumer testing": "q1_consumer_testing",
@@ -723,18 +735,35 @@
     function renderDemographics() {
       let fieldsHtml = "";
       demoQuestions.forEach((dq, di) => {
-        const selected = state.answers[dq.id] || "";
-        let optsHtml = `<div class="option-list">`;
-        dq.options.forEach(opt => {
-          const checked = selected === opt;
-          optsHtml += `
-            <label class="option-label ${checked ? 'selected' : ''}" data-action="select-demo" data-qid="${dq.id}" data-value="${esc(opt)}">
-              <input type="radio" name="${dq.id}" ${checked ? 'checked' : ''} />
-              <span class="radio-box ${checked ? 'checked' : ''}">${checked ? '<span class="radio-dot"></span>' : ''}</span>
-              ${esc(opt)}
-            </label>`;
-        });
-        optsHtml += `</div>`;
+        let optsHtml = "";
+
+        if (dq.type === "multi") {
+          const selected = state.answers[dq.id] || [];
+          optsHtml = `<p class="question-hint">Select all that apply</p><div class="option-list">`;
+          dq.options.forEach(opt => {
+            const checked = selected.includes(opt);
+            optsHtml += `
+              <label class="option-label ${checked ? 'selected' : ''}" data-action="toggle-demo-multi" data-qid="${dq.id}" data-value="${esc(opt)}">
+                <input type="checkbox" ${checked ? 'checked' : ''} />
+                <span class="checkbox-box ${checked ? 'checked' : ''}">${checked ? '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ''}</span>
+                ${esc(opt)}
+              </label>`;
+          });
+          optsHtml += `</div>`;
+        } else {
+          const selected = state.answers[dq.id] || "";
+          optsHtml = `<div class="option-list">`;
+          dq.options.forEach(opt => {
+            const checked = selected === opt;
+            optsHtml += `
+              <label class="option-label ${checked ? 'selected' : ''}" data-action="select-demo" data-qid="${dq.id}" data-value="${esc(opt)}">
+                <input type="radio" name="${dq.id}" ${checked ? 'checked' : ''} />
+                <span class="radio-box ${checked ? 'checked' : ''}">${checked ? '<span class="radio-dot"></span>' : ''}</span>
+                ${esc(opt)}
+              </label>`;
+          });
+          optsHtml += `</div>`;
+        }
 
         let otherHtml = "";
         if (dq.hasOther) {
@@ -854,11 +883,17 @@
 
       // Demographics
       demoQuestions.forEach(dq => {
-        const val = state.answers[dq.id] || "";
+        const val = state.answers[dq.id];
         const other = state.otherTexts[dq.id] || "";
-        let display = val || "\u2014 not answered \u2014";
-        if (val === "Other" && other) display = "Other: " + other;
-        else if (other && val !== "Other") display += " (Other: " + other + ")";
+        let display = "";
+        if (dq.type === "multi") {
+          const parts = val && val.length ? [...val] : [];
+          if (other) parts.push("Other: " + other);
+          display = parts.length ? parts.join(", ") : "\u2014 not answered \u2014";
+        } else {
+          display = val || "\u2014 not answered \u2014";
+          if (other) display += " (Other: " + other + ")";
+        }
         items += `
           <div class="review-item" data-action="edit" data-index="0">
             <div class="q-num" style="color:var(--text-muted);font-size:12px">About You</div>
@@ -976,6 +1011,17 @@
         state.started = true;
         state.startTime = new Date().toISOString();
         render();
+      } else if (action === "toggle-demo-multi") {
+        const qid = el.dataset.qid;
+        const val = el.dataset.value;
+        const arr = state.answers[qid] || [];
+        if (arr.includes(val)) {
+          state.answers[qid] = arr.filter(v => v !== val);
+        } else {
+          state.answers[qid] = [...arr, val];
+        }
+        state.error = "";
+        render();
       } else if (action === "select-demo") {
         const qid = el.dataset.qid;
         state.answers[qid] = el.dataset.value;
@@ -1027,7 +1073,11 @@
         for (const dq of demoQuestions) {
           const val = state.answers[dq.id];
           const other = state.otherTexts[dq.id];
-          if (!val && !other) return false;
+          if (dq.type === "multi") {
+            if ((!val || val.length === 0) && !other) return false;
+          } else {
+            if (!val && !other) return false;
+          }
         }
         return true;
       }
@@ -1061,10 +1111,21 @@
         userAgent: navigator.userAgent || "",
       };
 
-      // Demographics (single-select + other)
+      // Demographics
       demoQuestions.forEach(dq => {
-        payload[dq.id] = state.answers[dq.id] || "";
-        if (dq.hasOther) payload[dq.id + "_other"] = state.otherTexts[dq.id] || "";
+        if (dq.type === "multi") {
+          const selected = state.answers[dq.id] || [];
+          const keyMap = multiSelectKeyMaps[dq.id];
+          if (keyMap) {
+            Object.keys(keyMap).forEach(optionLabel => {
+              payload[keyMap[optionLabel]] = selected.includes(optionLabel) ? 1 : 0;
+            });
+          }
+          if (dq.hasOther) payload[dq.id + "_other"] = state.otherTexts[dq.id] || "";
+        } else {
+          payload[dq.id] = state.answers[dq.id] || "";
+          if (dq.hasOther) payload[dq.id + "_other"] = state.otherTexts[dq.id] || "";
+        }
       });
 
       // Main questions
@@ -1095,7 +1156,7 @@
       });
 
       try {
-        if (GOOGLE_SCRIPT_URL !== "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE") {
+        if (GOOGLE_SCRIPT_URL !== "YOUR_URL_HERE") {
           await new Promise((resolve, reject) => {
             const form = document.createElement("form");
             form.method = "POST";
